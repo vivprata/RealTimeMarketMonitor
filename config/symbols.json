@@ -1,0 +1,101 @@
+{
+  "portfolio_id": "P001",
+  "symbols": [
+    {
+      "symbol": "NVDA",
+      "company_name": "NVIDIA Corporation",
+      "sector": "Technology",
+      "industry": "Semiconductors",
+      "base_price": 223.67,
+      "annual_volatility": 0.440,
+      "beta": 1.75,
+      "avg_daily_volume": 500000,
+      "shares": 2600,
+      "purchase_price": 120.0
+    },
+    {
+      "symbol": "AAPL",
+      "company_name": "Apple Inc.",
+      "sector": "Technology",
+      "industry": "Consumer Electronics",
+      "base_price": 315.34,
+      "annual_volatility": 0.306,
+      "beta": 1.2,
+      "avg_daily_volume": 900000,
+      "shares": 1000,
+      "purchase_price": 210.0
+    },
+    {
+      "symbol": "MSFT",
+      "company_name": "Microsoft Corporation",
+      "sector": "Technology",
+      "industry": "Software",
+      "base_price": 491.65,
+      "annual_volatility": 0.199,
+      "beta": 0.95,
+      "avg_daily_volume": 710000,
+      "shares": 500,
+      "purchase_price": 420.0
+    },
+    {
+      "symbol": "AMZN",
+      "company_name": "Amazon.com, Inc.",
+      "sector": "Consumer Discretionary",
+      "industry": "Internet Retail",
+      "base_price": 252.4,
+      "annual_volatility": 0.344,
+      "beta": 1.3,
+      "avg_daily_volume": 630000,
+      "shares": 800,
+      "purchase_price": 190.0
+    },
+    {
+      "symbol": "TSLA",
+      "company_name": "Tesla, Inc.",
+      "sector": "Consumer Discretionary",
+      "industry": "Auto Manufacturers",
+      "base_price": 367.81,
+      "annual_volatility": 0.534,
+      "beta": 2.05,
+      "avg_daily_volume": 1210000,
+      "shares": 300,
+      "purchase_price": 280.0
+    },
+    {
+      "symbol": "JPM",
+      "company_name": "JPMorgan Chase & Co.",
+      "sector": "Financials",
+      "industry": "Banks",
+      "base_price": 305.0,
+      "annual_volatility": 0.250,
+      "beta": 1.1,
+      "avg_daily_volume": 480000,
+      "shares": 400,
+      "purchase_price": 230.0
+    },
+    {
+      "symbol": "XOM",
+      "company_name": "Exxon Mobil Corporation",
+      "sector": "Energy",
+      "industry": "Oil & Gas Integrated",
+      "base_price": 112.0,
+      "annual_volatility": 0.264,
+      "beta": 0.85,
+      "avg_daily_volume": 300000,
+      "shares": 300,
+      "purchase_price": 110.0
+    },
+    {
+      "symbol": "IBM",
+      "company_name": "International Business Machines",
+      "sector": "Technology",
+      "industry": "IT Services & Software",
+      "base_price": 239.94,
+      "annual_volatility": 0.214,
+      "beta": 0.7,
+      "avg_daily_volume": 400000,
+      "shares": 600,
+      "purchase_price": 190.0
+    }
+  ]
+}

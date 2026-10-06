@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MarketSignal",
+  "description": "Flink-computed real-time signal per symbol (output of Phase 4). Note: Flink keeps `symbol` in the Kafka message KEY; the value holds the remaining fields. Column order matches the Flink CREATE TABLE.",
+  "type": "object",
+  "properties": {
+    "symbol": { "type": "string" },
+    "timestamp": { "type": "string" },
+    "price": { "type": "number" },
+    "price_change_pct": {
+      "type": "number",
+      "description": "Price change vs the 5-minute-window baseline price, percent"
+    },
+    "volume_ratio": {
+      "type": "number",
+      "description": "current volume / 30-second rolling average volume"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["NORMAL", "UP", "DOWN", "SIGNIFICANT_DROP", "HIGH_VOLUME_DROP"]
+    }
+  },
+  "required": ["symbol", "timestamp", "price", "price_change_pct", "volume_ratio", "status"],
+  "additionalProperties": false
+}

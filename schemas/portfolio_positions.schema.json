@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PortfolioPosition",
+  "description": "A single holding in the portfolio (compacted, latest per symbol).",
+  "type": "object",
+  "properties": {
+    "portfolio_id": { "type": "string" },
+    "symbol": { "type": "string" },
+    "shares": { "type": "integer" },
+    "purchase_price": { "type": "number" }
+  },
+  "required": ["portfolio_id", "symbol", "shares", "purchase_price"],
+  "additionalProperties": false
+}

@@ -1,0 +1,181 @@
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Data Flow — Confluent + watsonx.data Stock Demo</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", system-ui, sans-serif; font-size: 14px; line-height: 1.6; background: #ffffff; color: #1f2328; max-width: 820px; margin: 0 auto; padding: 32px 24px 48px; }
+  h1 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+  .subtitle { color: #57606a; font-size: 0.88rem; margin-bottom: 28px; }
+  h2 { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #57606a; margin: 28px 0 10px; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; }
+  h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 4px; }
+
+  /* flow diagram */
+  .flow { display: flex; align-items: center; flex-wrap: wrap; gap: 0; margin-bottom: 28px; }
+  .node { background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 14px; min-width: 110px; text-align: center; }
+  .node .label { font-size: 0.78rem; font-weight: 700; color: #3b82d4; text-transform: uppercase; letter-spacing: 0.05em; }
+  .node .name { font-size: 0.88rem; font-weight: 600; margin-top: 1px; }
+  .node .tech { font-size: 0.75rem; color: #57606a; margin-top: 2px; }
+  .arrow { padding: 0 6px; color: #57606a; font-size: 1.1rem; flex-shrink: 0; }
+  .arrow .alabel { font-size: 0.68rem; color: #57606a; display: block; text-align: center; margin-top: -2px; }
+
+  /* tables */
+  table { width: 100%; border-collapse: collapse; font-size: 0.86rem; margin-bottom: 6px; }
+  th { background: #f7f8fa; text-align: left; padding: 7px 10px; font-weight: 600; border-bottom: 2px solid #e5e7eb; }
+  td { padding: 6px 10px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  code { background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 4px; padding: 1px 5px; font-size: 0.82rem; font-family: "SF Mono", "Fira Mono", monospace; }
+
+  /* badges */
+  .badge { display: inline-block; padding: 2px 7px; border-radius: 20px; font-size: 0.72rem; font-weight: 600; margin-right: 4px; }
+  .blue  { background: #dbeafe; color: #1d4ed8; }
+  .green { background: #dcfce7; color: #166534; }
+  .amber { background: #fef3c7; color: #92400e; }
+  .red   { background: #fee2e2; color: #991b1b; }
+  .gray  { background: #f3f4f6; color: #374151; }
+
+  /* callout */
+  .callout { background: #f7f8fa; border-left: 3px solid #3b82d4; border-radius: 0 8px 8px 0; padding: 10px 14px; margin: 10px 0; font-size: 0.86rem; }
+  .callout.warn { border-color: #f59e0b; }
+  .callout.red  { border-color: #ef4444; }
+
+  footer { margin-top: 40px; padding-top: 14px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 12px; color: #57606a; }
+</style>
+</head>
+<body>
+
+<h1>Data Flow — Confluent + watsonx.data Stock Demo</h1>
+<p class="subtitle">End-to-end pipeline: price simulation → Kafka streaming → Flink enrichment → Tableflow → watsonx.data → Streamlit</p>
+
+<h2>High-Level Flow</h2>
+<div class="flow">
+  <div class="node"><div class="label">Producer</div><div class="name">Simulator</div><div class="tech">Python / engine.py</div></div>
+  <div class="arrow">→<span class="alabel">Avro/JSON-SR</span></div>
+  <div class="node"><div class="label">Kafka Topic</div><div class="name">market_ticks</div><div class="tech">Confluent Cloud</div></div>
+  <div class="arrow">→<span class="alabel">Flink SQL</span></div>
+  <div class="node"><div class="label">Kafka Topic</div><div class="name">market_signals</div><div class="tech">Confluent Cloud</div></div>
+  <div class="arrow">→<span class="alabel">Tableflow</span></div>
+  <div class="node"><div class="label">Iceberg / S3</div><div class="name">market_signals</div><div class="tech">watsonx.data</div></div>
+  <div class="arrow">→<span class="alabel">Presto SQL</span></div>
+  <div class="node"><div class="label">Dashboard</div><div class="name">Streamlit</div><div class="tech">4 pages</div></div>
+</div>
+<div class="flow">
+  <div class="node"><div class="label">S3 Parquet</div><div class="name">Historical Data</div><div class="tech">hive_catalog</div></div>
+  <div class="arrow">→<span class="alabel">Presto SQL</span></div>
+  <div class="node"><div class="label">Dashboard</div><div class="name">Streamlit</div><div class="tech">pages 2, 3, 4</div></div>
+</div>
+<div class="flow">
+  <div class="node"><div class="label">Kafka Topic</div><div class="name">market_signals</div><div class="tech">Confluent Cloud</div></div>
+  <div class="arrow">→<span class="alabel">Direct consumer<br />(bypass Iceberg)</span></div>
+  <div class="node"><div class="label">Dashboard</div><div class="name">Anomaly Page</div><div class="tech">page 3 (live)</div></div>
+</div>
+
+<h2>1 — Simulator (Producer)</h2>
+<table>
+  <tr><th style="width:160px">Component</th><th>Detail</th></tr>
+  <tr><td><code>simulator/engine.py</code></td><td>Stateless price engine. Random walk per symbol using annual volatility from <code>config/symbols.json</code>. Supports scenarios: NORMAL, RALLY, SELLOFF, SHOCK.</td></tr>
+  <tr><td><code>run_simulator.py</code></td><td>CLI entry point. On startup: (1) burst-produces <strong>warmup ticks</strong> (back-dated, burst speed) to pre-fill Flink's 5-min window; (2) calls <code>arm_msft_anomaly()</code> immediately after; (3) enters live tick loop at ~1 tick/sec per symbol.</td></tr>
+  <tr><td>MSFT Anomaly</td><td><code>arm_msft_anomaly()</code> pins MSFT at <strong>–6.3% below its post-warmup anchor price</strong> with 3.4× volume, held indefinitely. MSFT annual vol = 0.199 → daily σ = 1.25% → –6.3% = <strong>5.03σ</strong>.</td></tr>
+  <tr><td>INJECT SHOCK button</td><td>Triggers a separate shock on IBM (or any symbol): –5.5% drop over 12 ticks, 600-tick hold, then recovery. Independent of the MSFT permanent anomaly.</td></tr>
+</table>
+
+<h2>2 — Kafka Topics</h2>
+<table>
+  <tr><th style="width:200px">Topic</th><th>Key</th><th>Value format</th><th>Consumer offset</th></tr>
+  <tr><td><code>market_ticks</code></td><td>symbol</td><td>JSON-SR (Schema Registry)</td><td>OFFSET_END (live only)</td></tr>
+  <tr><td><code>market_signals</code></td><td>symbol (SR-encoded)</td><td>JSON-SR, upsert/compacted</td><td>OFFSET_BEGINNING (replay latest per symbol)</td></tr>
+  <tr><td><code>portfolio_positions</code></td><td>symbol</td><td>JSON-SR, compacted</td><td>OFFSET_BEGINNING (full replay)</td></tr>
+</table>
+
+<h2>3 — Flink SQL (market_signals computation)</h2>
+<div class="callout">File: <code>flink/01_market_signals.sql</code> — run once in Confluent Cloud → Flink → SQL Workspace. Must be manually resumed if it stops (free trial auto-stops ~every 12h).</div>
+<table>
+  <tr><th style="width:180px">Field</th><th>Computation</th></tr>
+  <tr><td><code>price_change_pct</code></td><td>(<code>current_price</code> − oldest price in 5-min rolling window) / oldest × 100. Gives full shock magnitude.</td></tr>
+  <tr><td><code>volume_ratio</code></td><td><code>current_volume</code> / avg volume in 30-sec rolling window. Short window so a burst spike registers immediately.</td></tr>
+  <tr><td><code>status</code></td><td>Rule: <span class="badge red">HIGH_VOLUME_DROP</span> if drop &lt; –3% AND volume &gt; 2×; <span class="badge amber">SIGNIFICANT_DROP</span> if ≤ –5%; <span class="badge amber">DOWN</span> if ≤ –3%; <span class="badge green">UP</span> if ≥ +3%; else <span class="badge gray">NORMAL</span>.</td></tr>
+</table>
+
+<h2>4 — Tableflow (Kafka → Iceberg)</h2>
+<table>
+  <tr><th style="width:180px">Property</th><th>Detail</th></tr>
+  <tr><td>What it does</td><td>Continuously syncs <code>market_signals</code> Kafka topic into an Apache Iceberg table on S3, queryable via <code>watsonx.data</code> Presto.</td></tr>
+  <tr><td>Iceberg UUID</td><td><code>f5d3b8d1-045c-4932-ac70-a7cb529bcc02</code> in catalog <code>confluent."v1-root"</code></td></tr>
+  <tr><td>Commit cadence</td><td>~3 min event freshness (free tier)</td></tr>
+  <tr><td>⚠ Known issue</td><td>Snapshot file <code>snap-6848989660427070461-*.avro</code> is missing from S3 — any Iceberg query against this table throws <code>GENERIC_INTERNAL_ERROR: File does not exist</code>. Pages 3 and 4 bypass this entirely (see §6).</td></tr>
+</table>
+
+<h2>5 — S3 Historical Data (hive_catalog)</h2>
+<table>
+  <tr><th style="width:200px">Table</th><th>Contents</th><th>Used by</th></tr>
+  <tr><td><code>historical_prices</code></td><td>Daily OHLCV, 2 years, all 8 symbols</td><td>Pages 2, 4</td></tr>
+  <tr><td><code>historical_risk_metrics</code></td><td>Daily volatility, avg_volume, beta, drawdown</td><td>Page 3 (anomaly scoring)</td></tr>
+  <tr><td><code>portfolio_positions</code></td><td>Shares + purchase price per symbol</td><td>Pages 4</td></tr>
+  <tr><td><code>company_reference</code></td><td>Symbol, company name, sector</td><td>Page 2</td></tr>
+</table>
+<div class="callout">All S3 tables are accessed via <strong>watsonx.data Presto</strong> over HTTPS with basic auth (<code>trino</code> Python client). Connection is cached module-level in <code>watsonx_client.py</code>.</div>
+
+<h2>6 — Dashboard Background Consumer (market_data.py)</h2>
+<table>
+  <tr><th style="width:200px">Component</th><th>Detail</th></tr>
+  <tr><td><code>MarketState</code></td><td>Thread-safe in-memory store. Holds latest price, volume, bid/ask, tick history (last 600), and latest Flink signal per symbol.</td></tr>
+  <tr><td><code>ConsumerThread</code></td><td>Daemon thread created once per Streamlit session (<code>@st.cache_resource</code>). Phase 1: drains historical backlog (portfolio + signals replay). Phase 2: live poll loop.</td></tr>
+  <tr><td><code>snapshot()['rows']</code></td><td>Per-symbol dict with: <code>price</code>, <code>change_pct</code> (vs first-seen price), <code>vol_ratio</code>, plus Flink-authoritative <code>flink_change_pct</code>, <code>flink_vol_ratio</code>, <code>flink_status</code> (None until Flink signals arrive).</td></tr>
+  <tr><td>Topics consumed</td><td><code>market_ticks</code> (OFFSET_END), <code>market_signals</code> (OFFSET_BEGINNING), <code>portfolio_positions</code> (OFFSET_BEGINNING)</td></tr>
+</table>
+
+<h2>7 — Dashboard Pages</h2>
+<table>
+  <tr><th style="width:40px">#</th><th style="width:200px">Page</th><th>Data sources</th><th>Key logic</th></tr>
+  <tr>
+    <td>1</td>
+    <td>Live Market Monitor</td>
+    <td><span class="badge blue">Kafka</span> market_ticks (live)</td>
+    <td>Reads <code>MarketState.snapshot()</code> directly. Ticks → price grid + sparklines. INJECT SHOCK button calls simulator endpoint.</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td>Historical Analysis</td>
+    <td><span class="badge green">S3 Parquet</span> hive_catalog</td>
+    <td>Presto queries against <code>historical_prices</code> + <code>historical_risk_metrics</code>. No streaming dependency — unaffected by Iceberg breakage.</td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td>Anomaly Detection</td>
+    <td><span class="badge blue">Kafka</span> market_signals (live) + <span class="badge green">S3</span> historical_risk_metrics</td>
+    <td><code>score_anomalies_from_kafka()</code>: takes <code>flink_change_pct</code> (or local <code>change_pct</code> fallback) from the in-memory consumer, joins with S3 volatility in Python. <strong>No Iceberg/Tableflow.</strong> MSFT shows ≥5σ permanently.</td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td>Portfolio Rebalancing</td>
+    <td><span class="badge blue">Kafka</span> live prices + <span class="badge green">S3</span> historical_prices + portfolio_positions</td>
+    <td>Presto query against S3 hive tables for 6m/1y returns; live prices from <code>MarketState.snapshot()</code>. <strong>No Iceberg/Tableflow.</strong> Position weights computed in Python.</td>
+  </tr>
+</table>
+
+<h2>8 — Anomaly Scoring Formula</h2>
+<div class="callout">
+  <strong>daily_σ %</strong> = <code>annual_volatility / √252 × 100</code><br />
+  <strong>anomaly_sigma</strong> = <code>|price_change_pct| / daily_σ %</code>  (capped at 10)<br /><br />
+  MSFT example: annual vol = 0.199 → daily σ = <strong>1.254%</strong> → change = –6.3% → <strong>5.03σ</strong> 🚨<br />
+  Threshold for anomaly flag: <strong>≥ 1.5σ</strong> (configurable via <code>ANOMALY_SIGMA_THRESHOLD</code>)
+</div>
+
+<h2>9 — Key Files</h2>
+<table>
+  <tr><th style="width:280px">File</th><th>Role</th></tr>
+  <tr><td><code>simulator/engine.py</code></td><td>Price engine, scenarios, MSFT permanent anomaly</td></tr>
+  <tr><td><code>simulator/run_simulator.py</code></td><td>CLI: warmup burst → arm_msft_anomaly → live loop</td></tr>
+  <tr><td><code>flink/01_market_signals.sql</code></td><td>Flink INSERT INTO statement (run in Confluent Cloud)</td></tr>
+  <tr><td><code>dashboard/market_data.py</code></td><td>Background Kafka consumer + MarketState</td></tr>
+  <tr><td><code>dashboard/watsonx_client.py</code></td><td>Presto client + score_anomalies_from_kafka()</td></tr>
+  <tr><td><code>dashboard/pages/3_Anomaly_Detection.py</code></td><td>Anomaly page — uses live Kafka path, no Iceberg</td></tr>
+  <tr><td><code>dashboard/pages/4_Portfolio_Rebalancing.py</code></td><td>Portfolio page — live prices + S3, no Iceberg</td></tr>
+  <tr><td><code>config/symbols.json</code></td><td>8 symbols: base price, volatility, beta, avg volume</td></tr>
+  <tr><td><code>.env</code></td><td>Confluent + watsonx.data credentials (not in git)</td></tr>
+</table>
+
+<footer>Made with IBM Bob</footer>
+</body>
+</html>

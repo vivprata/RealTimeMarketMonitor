@@ -1,0 +1,27 @@
+# Confluent + watsonx.data Stock Market Demo — FinalDemo
+# Pinned to latest stable versions (July 2025).
+
+# Kafka client (Confluent Cloud) + Schema Registry JSON Schema serialization
+confluent-kafka[json]==2.10.0
+jsonschema==4.23.0
+
+# Config
+python-dotenv==1.1.1
+certifi>=2025.4.26
+
+# Data generation (Phase 1)
+numpy==2.1.1
+pandas==2.2.3
+pyarrow==17.0.0
+
+# S3 upload (Phase 1)
+boto3==1.38.42
+
+# CLI niceties
+click==8.2.1
+
+# Dashboard (Phase 7)
+streamlit==1.46.0
+
+# watsonx.data query client (Presto)
+trino==0.332.0
